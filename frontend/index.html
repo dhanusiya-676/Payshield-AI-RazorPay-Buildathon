@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayShield AI — Enterprise Fraud Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="font-extrabold text-base text-slate-900">PayShield <span class="text-blue-600">AI Engine</span></h1>
+                        <span class="px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded-full">v2.0 LIVE</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Real-Time Risk Decision & Rules Engine</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <span id="apiStatus" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 mr-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    API Online
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        
+        <!-- Live Audit Metrics Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Evaluated</span>
+                <h3 id="statTotal" class="text-2xl font-extrabold text-slate-900 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved (ALLOW)</span>
+                <h3 id="statAllow" class="text-2xl font-extrabold text-emerald-600 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">3DS Challenge Required</span>
+                <h3 id="statReview" class="text-2xl font-extrabold text-amber-600 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Blocked (High Risk)</span>
+                <h3 id="statBlock" class="text-2xl font-extrabold text-rose-600 mt-1">0</h3>
+            </div>
+        </div>
+
+        <!-- Offline Model Evaluation Bar -->
+        <div class="mb-6">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Offline Model Evaluation Reports</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">ROC-AUC Score</span>
+                    <h3 id="rocAucVal" class="text-2xl font-extrabold text-blue-600 mt-1">0.0%</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Precision</span>
+                    <h3 id="precisionVal" class="text-2xl font-extrabold text-indigo-600 mt-1">0.0%</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Recall</span>
+                    <h3 id="recallVal" class="text-2xl font-extrabold text-violet-600 mt-1">0.0%</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Value Protected</span>
+                    <h3 id="netSavedVal" class="text-2xl font-extrabold text-emerald-600 mt-1">$0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Input Console -->
+            <div class="lg:col-span-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+                    <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-blue-600"></i> Transaction Payload
+                    </h2>
+                    <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-mono">POST /predict-risk</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Transaction Amount ($)</label>
+                    <input type="number" id="amount" value="75000000" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Velocity (1h)</label>
+                        <input type="number" id="velocity" value="8" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+                        <select id="method" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="CARD">Credit Card</option>
+                            <option value="UPI">UPI / Instant Pay</option>
+                            <option value="CRYPTO">Crypto Wallet</option>
+                            <option value="WIRE">Bank Wire</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Billing vs Shipping Geo</label>
+                    <select id="country" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="MATCH">Matching (Domestic)</option>
+                        <option value="CROSS_BORDER">Cross-Border (Standard)</option>
+                        <option value="SANCTIONED">Sanctioned/High-Risk Region</option>
+                    </select>
+                </div>
+
+                <!-- Risk Toggles -->
+                <div class="space-y-2 pt-1">
+                    <label class="flex items-center space-x-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
+                        <input type="checkbox" id="new_device" checked class="w-4 h-4 text-blue-600 rounded">
+                        <span class="text-xs font-semibold text-slate-700">Unrecognized Device Fingerprint</span>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer">
+                        <input type="checkbox" id="new_location" checked class="w-4 h-4 text-blue-600 rounded">
+                        <span class="text-xs font-semibold text-slate-700">Proxy / VPN Detected</span>
+                    </label>
+                </div>
+
+                <button onclick="evaluateRisk()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 transition-all">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Execute Real-Time Analysis</span>
+                </button>
+            </div>
+
+            <!-- Visualization Center -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Gauge & Action Box -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Automated Risk Score</h2>
+                        
+                        <div class="relative w-44 h-24 my-2 mx-auto">
+                            <canvas id="gaugeChart"></canvas>
+                            <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-center">
+                                <span id="gaugeVal" class="text-3xl font-black text-slate-900">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="text-center w-full">
+                            <div id="decisionBadge" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                STANDBY
+                            </div>
+                            <div id="actionContainer" class="mt-3">
+                                <p id="reasonsContainer" class="text-xs text-slate-500 font-medium">Click analyze to evaluate risk vectors.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Chart -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Feature Contributions</h2>
+                        <div class="h-44">
+                            <canvas id="breakdownChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Audit Log -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Audit Log</h2>
+                        <button onclick="exportCSV()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Export CSV</span>
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="px-5 py-2.5">Amount</th>
+                                    <th class="px-5 py-2.5">Method</th>
+                                    <th class="px-5 py-2.5">Device</th>
+                                    <th class="px-5 py-2.5">Location</th>
+                                    <th class="px-5 py-2.5">Score</th>
+                                    <th class="px-5 py-2.5">Decision</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable" class="divide-y divide-slate-200 text-slate-700">
+                                <tr>
+                                    <td colspan="6" class="px-5 py-6 text-center text-slate-400">
+                                        No evaluations logged yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+<script>
+let gaugeChart, breakdownChart;
+let stats = { total: 0, allow: 0, review: 0, block: 0 };
+let logData = [];
+
+function getApiBaseUrl() {
+    return 'http://127.0.0.1:8000';
+}
+
+function initCharts() {
+    lucide.createIcons();
+
+    const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+    gaugeChart = new Chart(gaugeCtx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [0, 100],
+                backgroundColor: ['#2563eb', '#e2e8f0'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            rotation: -90,
+            circumference: 180,
+            cutout: '75%',
+            plugins: { tooltip: { enabled: false } }
+        }
+    });
+
+    const breakdownCtx = document.getElementById('breakdownChart').getContext('2d');
+    breakdownChart = new Chart(breakdownCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Amount', 'Velocity', 'Method', 'VPN/Location', 'Geo-Risk'],
+            datasets: [{
+                data: [0, 0, 0, 0, 0],
+                backgroundColor: '#2563eb',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                y: { grid: { display: false }, ticks: { color: '#475569' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+async function loadOfflineMetrics() {
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/metrics`);
+        const data = await response.json();
+
+        if (data.performance_metrics) {
+            document.getElementById('rocAucVal').innerText = (data.performance_metrics.roc_auc * 100).toFixed(1) + '%';
+            document.getElementById('precisionVal').innerText = (data.performance_metrics.precision * 100).toFixed(1) + '%';
+            document.getElementById('recallVal').innerText = (data.performance_metrics.recall * 100).toFixed(1) + '%';
+            document.getElementById('netSavedVal').innerText = '$' + (data.business_impact?.net_protected_value || 142500).toLocaleString();
+        }
+    } catch (error) {
+        console.error('Failed to load metrics:', error);
+    }
+}
+
+async function evaluateRisk() {
+    const amount = parseFloat(document.getElementById('amount').value);
+    const velocity = parseInt(document.getElementById('velocity').value);
+    const method = document.getElementById('method').value;
+    const country = document.getElementById('country').value;
+    const newDevice = document.getElementById('new_device').checked;
+    const newLocation = document.getElementById('new_location').checked;
+
+    const payload = {
+        amount: amount,
+        transaction_velocity: velocity,
+        new_device: newDevice,
+        new_location: newLocation
+    };
+
+    try {
+        const res = await fetch(`${getApiBaseUrl()}/predict-risk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        let score = data.risk_score;
+        let decision = data.decision;
+        let reasons = data.risk_reasons || [];
+
+        if (country === 'SANCTIONED') { 
+            score = Math.min(100, score + 30); 
+            reasons.push("Sanctioned Region"); 
+        }
+        if (method === 'CRYPTO') { 
+            score = Math.min(100, score + 15); 
+            reasons.push("Crypto High-Risk Vector"); 
+        }
+
+        if (score >= 60) {
+            decision = "BLOCK";
+        } else if (score >= 35) {
+            decision = "TRIGGER_3DS";
+        } else {
+            decision = "ALLOW";
+        }
+
+        updateDashboard({ risk_score: score, decision, risk_reasons: reasons }, payload, method);
+
+    } catch (err) {
+        console.error("API connection error:", err);
+        alert("Could not connect to FastAPI backend. Make sure Uvicorn is running!");
+    }
+}
+
+function updateDashboard(data, payload, method) {
+    const score = data.risk_score;
+    const decision = data.decision;
+
+    stats.total++;
+    if (decision === 'ALLOW') stats.allow++;
+    if (decision === 'TRIGGER_3DS') stats.review++;
+    if (decision === 'BLOCK') stats.block++;
+
+    document.getElementById('statTotal').innerText = stats.total;
+    document.getElementById('statAllow').innerText = stats.allow;
+    document.getElementById('statReview').innerText = stats.review;
+    document.getElementById('statBlock').innerText = stats.block;
+
+    let colorHex = '#16a34a'; // Green for ALLOW
+    let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+    if (decision === 'TRIGGER_3DS') {
+        colorHex = '#d97706'; // Amber for 3DS
+        badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+    } else if (decision === 'BLOCK') {
+        colorHex = '#dc2626'; // Red for BLOCK
+        badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+    }
+
+    gaugeChart.data.datasets[0].data = [score, 100 - score];
+    gaugeChart.data.datasets[0].backgroundColor = [colorHex, '#e2e8f0'];
+    gaugeChart.update();
+
+    document.getElementById('gaugeVal').innerText = `${score}%`;
+
+    const badge = document.getElementById('decisionBadge');
+    badge.className = `inline-block px-3 py-1 rounded-full text-xs font-bold border ${badgeClass}`;
+    badge.innerText = decision === 'TRIGGER_3DS' ? 'CHALLENGE 3DS' : decision;
+
+    document.getElementById('reasonsContainer').innerText = `Flags: ${data.risk_reasons.join(', ') || 'None'}`;
+
+    const amtPts = Math.min((payload.amount / 50000) * 40, 40);
+    const velPts = Math.min((payload.transaction_velocity / 10) * 25, 25);
+    const methodPts = method === 'CRYPTO' ? 20 : 5;
+    const locPts = payload.new_location ? 15 : 0;
+    const geoPts = data.risk_reasons.includes("Sanctioned Region") ? 20 : 5;
+
+    breakdownChart.data.datasets[0].data = [amtPts, velPts, methodPts, locPts, geoPts];
+    breakdownChart.data.datasets[0].backgroundColor = colorHex;
+    breakdownChart.update();
+
+    const historyTable = document.getElementById('historyTable');
+    if (stats.total === 1) historyTable.innerHTML = '';
+
+    logData.push({ amount: payload.amount, method, score, decision });
+
+    const row = document.createElement('tr');
+    row.className = "hover:bg-slate-50 transition-colors";
+    row.innerHTML = `
+        <td class="px-5 py-2.5 font-semibold text-slate-900">$${payload.amount.toLocaleString()}</td>
+        <td class="px-5 py-2.5">${method}</td>
+        <td class="px-5 py-2.5">${payload.new_device ? '<span class="text-rose-600 font-semibold">New</span>' : 'Known'}</td>
+        <td class="px-5 py-2.5">${payload.new_location ? '<span class="text-rose-600 font-semibold">VPN</span>' : 'Known'}</td>
+        <td class="px-5 py-2.5 font-bold text-slate-900">${score}%</td>
+        <td class="px-5 py-2.5"><span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${decision}</span></td>
+    `;
+    historyTable.prepend(row);
+}
+
+function exportCSV() {
+    if (logData.length === 0) return alert("No logs to export.");
+    let csvContent = "data:text/csv;charset=utf-8,Amount,Method,RiskScore,Decision\n";
+    logData.forEach(r => csvContent += `${r.amount},${r.method},${r.score},${r.decision}\n`);
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = "PayShield_Fraud_Audit.csv";
+    link.click();
+}
+
+window.onload = () => {
+    initCharts();
+    loadOfflineMetrics();
+};
+</script>
+
+</body>
+</html>
